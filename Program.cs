@@ -11,6 +11,8 @@ using System.Threading;
 using Stratum;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using MySql.Data.MySqlClient;
+using System.Configuration;
 
 namespace StratumProxy
 {
@@ -47,6 +49,27 @@ namespace StratumProxy
 			serverReader = new StreamReader(serverStream);
 		}
 
+		static int GetUser(string username, string password)
+		{
+			using (var conn = new MySqlConnection(ConfigurationManager.ConnectionStrings["mpos"].ConnectionString))
+			using (var cmd = conn.CreateCommand())
+			{
+				conn.Open();
+				cmd.CommandText = "SELECT account_id FROM pool_worker WHERE username = ?username AND password = ?password";
+				cmd.CommandTimeout = 5;
+				cmd.Parameters.AddWithValue("?username", username);
+				cmd.Parameters.AddWithValue("?password", password);
+				using (var reader = cmd.ExecuteReader())
+				{
+					while (reader.HasRows && reader.Read())
+					{
+						return (int)reader[0];
+					}
+				}
+			}
+			throw new Exception("No such user");
+		}
+
 		static void MinerClient(TcpClient client)
 		{
 			try
@@ -78,8 +101,12 @@ namespace StratumProxy
 							}
 							if (r.Method.Equals("mining.authorize"))
 							{
+								if (r.Params.Count < 2)
+								{
+									break;
+								}
 								// itt le kene ellenorzni ki/mi o
-								userid = 0;
+								userid = GetUser(r.Params[0].ToString(), r.Params[1].ToString());
 
 								ConnectToPool(userid, ref serverReader, ref serverWriter);
 								//be kell jelentkezni + autholni magunkat a poolba
