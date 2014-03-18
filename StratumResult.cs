@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.ComponentModel;
 
 namespace Stratum
 {
@@ -13,13 +14,20 @@ namespace Stratum
     {
 
         [JsonProperty("id")]
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
         [JsonProperty("result")]
         public object Result { get; set; }
 
         [JsonProperty("error")]
         public object[] Error { get; set; }
+
+        public StratumResult(int id, object result, object error)
+        {
+            this.Id = id;
+            this.Result = result;
+            this.Error = (object[])error;
+        }
     }
 
 }
